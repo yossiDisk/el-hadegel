@@ -18,6 +18,20 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 });
 
+// --- GA helper ---
+window.sendGA = function(eventName, params = {}) {
+  try {
+    if (typeof gtag === 'function') {
+      gtag('event', eventName, params);
+    } else {
+      console.warn('gtag not ready yet', eventName, params);
+    }
+  } catch (e) {
+    console.warn('GA error', e, eventName, params);
+  }
+};
+
+
 // Setup event listeners
 function setupEventListeners() {
     document.getElementById('searchBtn').addEventListener('click', applyFilters);
@@ -952,3 +966,186 @@ function showError(message) {
     const tbody = document.getElementById('jobsTableBody');
     tbody.innerHTML = `<tr><td colspan="11" class="loading" style="color: var(--danger-color);">${message}</td></tr>`;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  // --- חיפוש ---
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn   = document.getElementById('searchBtn');
+  const clearBtn    = document.getElementById('clearSearchBtn');
+
+  searchBtn?.addEventListener('click', () => {
+    window.sendGA('search_click', {
+      search_term: (searchInput?.value || '').trim()
+    });
+  });
+
+  // חיפוש ע"י Enter
+  searchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      window.sendGA('search_enter', {
+        search_term: (searchInput?.value || '').trim()
+      });
+    }
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    window.sendGA('search_clear');
+  });
+
+  // --- סינונים ---
+  const bindSelectChange = (id, eventName) => {
+    const el = document.getElementById(id);
+    el?.addEventListener('change', () => {
+      window.sendGA(eventName, { value: el.value });
+    });
+  };
+
+  bindSelectChange('locationFilter',     'filter_location_change');
+  bindSelectChange('officeFilter',       'filter_office_change');
+  bindSelectChange('areaFilter',         'filter_area_change');
+  bindSelectChange('publishTypeFilter',  'filter_publish_type_change');
+  bindSelectChange('sortBy',             'sort_by_change');
+  bindSelectChange('sortOrder',          'sort_order_change');
+
+  // --- פעולות מסך הסינון ---
+  document.getElementById('showFavoritesBtn')?.addEventListener('click', () => {
+    // אם יש לך מצב מועדפים פעיל/כבוי – שלח אותו פה
+    window.sendGA('favorites_toggle');
+  });
+
+  document.getElementById('resetFiltersBtn')?.addEventListener('click', () => {
+    window.sendGA('filters_reset');
+  });
+
+  document.getElementById('exportBtn')?.addEventListener('click', () => {
+    // אם ידוע כמה משרות יוצאו – הוסף { exported_count: N }
+    window.sendGA('export_to_excel_click');
+  });
+
+  // --- כפתורי Header ---
+  document.getElementById('statsBtn')?.addEventListener('click', () => {
+    // אם אתה יודע אם נפתח/נסגר – הוסף { visible: true/false }
+    window.sendGA('stats_toggle');
+  });
+
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    // אם יש לך מצב 'dark'/'light' – שלח אותו
+    window.sendGA('theme_toggle');
+  });
+
+  // --- מודל "אודות" ---
+  window.openAboutModal = (function(orig){
+    return function(...args){
+      window.sendGA('about_open');
+      return orig?.apply(this, args);
+    };
+  })(window.openAboutModal);
+
+  window.closeAboutModal = (function(orig){
+    return function(...args){
+      window.sendGA('about_close');
+      return orig?.apply(this, args);
+    };
+  })(window.closeAboutModal);
+
+  // --- טעינת נתונים ותצוגה ---
+  // קרא לזה אחרי שאתה מסיים להביא/לבנות את רשימת המשרות
+  // window.sendGA('jobs_loaded', { total_jobs: מספר_כולל });
+
+  // קרא לזה אחרי רענון / סינון / מיון שמציג רשימה חדשה
+  // window.sendGA('jobs_shown', { shown_count: מספר_מוצג });
+
+  // --- אין תוצאות ---
+  // כשאתה מציג את ה-div #noResults
+  // window.sendGA('no_results', { search_term: searchInput?.value || '' });
+
+  // --- טבלה/כרטיסים: קליקים, מועדפים, פתיחת מודל ---
+  // אם יש לך ייצור דינמי של שורות/כרטיסים, נשתמש בהאזנה עם delegation:
+  const jobsTableBody = document.getElementById('jobsTableBody');
+  const jobsCards     = document.getElementById('jobsCards');
+
+  const extractJobDataFromElement = (el) => {
+    // תתאים לשדות שיש לך ב-DOM או ב-dataset
+    // מומלץ לשים data-* על האלמנטים (למשל data-job-id, data-title, data-office)
+    const row = el.closest('[data-job-id]');
+    if (!row) return {};
+    return {
+      job_id:   row.dataset.jobId,
+      title:    row.dataset.title,
+      office:   row.dataset.office,
+      location: row.dataset.location
+    };
+  };
+
+  const handleClick = (e) => {
+    const target = e.target;
+
+    // כפתור "מועדף"
+    if (target.closest('.favorite-toggle')) {
+      const data = extractJobDataFromElement(target);
+      // אם אתה יודע אם זה הוסף או הוסר – הוסף { action: 'add'|'remove' }
+      window.sendGA('favorite_toggle_click', data);
+      return;
+    }
+
+    // פתיחת מודל/פרטים
+    if (target.closest('.open-details')) {
+      const data = extractJobDataFromElement(target);
+      window.sendGA('job_details_open', data);
+      return;
+    }
+
+    // "הגש מועמדות" מתוך שורה/כרטיס (אם יש כזה)
+    if (target.closest('.apply-now')) {
+      const data = extractJobDataFromElement(target);
+      window.sendGA('apply_click', data);
+      return;
+    }
+  };
+
+  jobsTableBody?.addEventListener('click', handleClick);
+  jobsCards?.addEventListener('click', handleClick);
+
+  // --- מודל משרה: שיתוף/הגשה/סגירה ---
+  window.applyFromModal = (function(orig){
+    return function(...args){
+      // אם יש לך משתני משרה גלובליים כשמודל פתוח – שלוף אותם כאן
+      window.sendGA('apply_click_from_modal');
+      return orig?.apply(this, args);
+    };
+  })(window.applyFromModal);
+
+  window.toggleShareMenu = (function(orig){
+    return function(...args){
+      window.sendGA('share_menu_toggle');
+      return orig?.apply(this, args);
+    };
+  })(window.toggleShareMenu);
+
+  window.shareJob = (function(orig){
+    return function(channel, ...rest){
+      window.sendGA('share_job', { channel }); // whatsapp | email | copy
+      return orig?.apply(this, [channel, ...rest]);
+    };
+  })(window.shareJob);
+
+  window.openJobModal = (function(orig){
+    return function(job){
+      // מומלץ לקרוא לפונקציה הזו כשאתה פותח מודל ולהעביר לה את אובייקט המשרה
+      window.sendGA('job_details_open', {
+        job_id: job?.id,
+        title: job?.title,
+        office: job?.office,
+        location: job?.location
+      });
+      return orig?.apply(this, [job]);
+    };
+  })(window.openJobModal);
+
+  window.closeJobModal = (function(orig){
+    return function(...args){
+      window.sendGA('job_details_close');
+      return orig?.apply(this, args);
+    };
+  })(window.closeJobModal);
+});
