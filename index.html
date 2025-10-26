@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת דרושים - משרד רה"מ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-top">
+                <div class="header-content">
+                    <h1>אל הדגל 🇮🇱</h1>
+                    <p class="subtitle">משרות פתוחות במגזר הציבורי</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" onclick="toggleStats()" title="הצג/הסתר סטטיסטיקות" id="statsBtn">
+                        📊
+                    </button>
+                    <button class="btn-icon" onclick="toggleTheme()" title="החלף מצב תצוגה" id="themeToggle">
+                        🌙
+                    </button>
+                    <button class="btn-about" onclick="openAboutModal()">
+                        ℹ️ אודות האתר
+                    </button>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalJobs">0</span>
+                    <span class="stat-label">משרות פתוחות</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="favoriteCount">0</span>
+                    <span class="stat-label">משרות מועדפות</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="filters-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="חיפוש חופשי (שם משרה, משרד, יחידה...)">
+                <button id="searchBtn" class="btn btn-primary">חפש</button>
+                <button id="clearSearchBtn" class="btn btn-secondary">נקה</button>
+            </div>
+
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="locationFilter">מיקום</label>
+                    <select id="locationFilter">
+                        <option value="">כל המיקומים</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="officeFilter">משרד</label>
+                    <select id="officeFilter">
+                        <option value="">כל המשרדים</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="areaFilter">אזור</label>
+                    <select id="areaFilter">
+                        <option value="">כל האזורים</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="publishTypeFilter">סוג פרסום</label>
+                    <select id="publishTypeFilter">
+                        <option value="">כל הסוגים</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sortBy">מיין לפי</label>
+                    <select id="sortBy">
+                        <option value="lastDate">תאריך הגשה אחרון</option>
+                        <option value="publishDate">תאריך פרסום</option>
+                        <option value="name">שם המשרה</option>
+                        <option value="office">משרד</option>
+                        <option value="location">מיקום</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sortOrder">סדר</label>
+                    <select id="sortOrder">
+                        <option value="asc">עולה</option>
+                        <option value="desc">יורד</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button id="showFavoritesBtn" class="btn btn-secondary">
+                    <span class="icon">⭐</span> הצג מועדפים בלבד
+                </button>
+                <button id="resetFiltersBtn" class="btn btn-secondary">איפוס סינונים</button>
+                <button id="exportBtn" class="btn btn-secondary">
+                    📥 ייצא לאקסל
+                </button>
+            </div>
+        </div>
+
+        <div class="results-info">
+            <p>מציג <strong id="displayCount">0</strong> משרות מתוך <strong id="totalCount">0</strong></p>
+        </div>
+
+        <!-- Statistics Content (hidden by default) -->
+        <div id="statsContent" class="stats-content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>🏢 משרות לפי משרד</h4>
+                    <div id="statsByOffice" class="stat-list"></div>
+                </div>
+                <div class="stat-card">
+                    <h4>📍 משרות לפי אזור</h4>
+                    <div id="statsByArea" class="stat-list"></div>
+                </div>
+                <div class="stat-card">
+                    <h4>📋 משרות לפי סוג פרסום</h4>
+                    <div id="statsByType" class="stat-list"></div>
+                </div>
+                <div class="stat-card">
+                    <h4>⏰ משרות לפי דחיפות</h4>
+                    <div id="statsByUrgency" class="stat-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
+            <table id="jobsTable">
+                <thead>
+                    <tr>
+                        <th width="60">מועדף</th>
+                        <th width="100">מספר משרה</th>
+                        <th width="250">שם המשרה</th>
+                        <th width="200">משרד</th>
+                        <th width="200">יחידה ארגונית</th>
+                        <th width="120">מיקום</th>
+                        <th width="100">אזור</th>
+                        <th width="120">תאריך פרסום</th>
+                        <th width="120">תאריך הגשה אחרון</th>
+                        <th width="80">ימים נותרו</th>
+                        <th width="120">פעולות</th>
+                    </tr>
+                </thead>
+                <tbody id="jobsTableBody">
+                    <tr>
+                        <td colspan="11" class="loading">טוען נתונים...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards View -->
+        <div id="jobsCards">
+            <!-- Cards will be inserted here by JavaScript -->
+        </div>
+
+        <div id="noResults" class="no-results" style="display: none;">
+            <p>לא נמצאו משרות התואמות את הקריטריונים שבחרת</p>
+        </div>
+    </main>
+
+    <!-- Modal for job details -->
+    <div id="jobModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalJobTitle">פרטי המשרה</h2>
+                <button class="modal-close" onclick="closeJobModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalJobDetails">
+                <!-- Job details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="applyFromModal()">הגש מועמדות</button>
+                <button class="btn btn-secondary" onclick="toggleShareMenu()" id="shareToggleBtn">
+                    🔗 שתף
+                </button>
+                <div id="shareMenu" class="share-menu" style="display: none;">
+                    <button class="btn btn-share" onclick="shareJob('whatsapp')">
+                        💬 ווטסאפ
+                    </button>
+                    <button class="btn btn-share" onclick="shareJob('email')">
+                        📧 מייל
+                    </button>
+                    <button class="btn btn-share" onclick="shareJob('copy')">
+                        📋 העתק קישור
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="closeJobModal()">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for About -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>אודות "אל הדגל" 🇮🇱</h2>
+                <button class="modal-close" onclick="closeAboutModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="about-section">
+                    <h3>🎯 מטרת האתר</h3>
+                    <p>
+                        אתר "אל הדגל" נועד להקל על מועמדים למצוא ולגשת למשרות בשירות הציבורי הממשלתי.
+                        האתר מאפשר חיפוש, סינון ומעקב נוח אחר משרות פתוחות במגוון משרדי הממשלה ויחידות ממשלתיות.
+                    </p>
+                </div>
+
+                <div class="about-section">
+                    <h3>⚖️ הצהרה חשובה</h3>
+                    <p>
+                        <strong>אתר זה אינו אתר רשמי ממשלתי</strong> ואינו מתיימר להיות כזה. 
+                        האתר נבנה כיוזמה עצמאית במטרה לסייע למועמדים בתהליך חיפוש המשרות.
+                        כל המידע מגיע מה-API הציבורי של מערכת "גיוס" הממשלתית, והאתר אינו נושא באחריות למדויקות המידע.
+                    </p>
+                    <p>
+                        <strong>להגשת מועמדות רשמית:</strong> יש להיכנס לאתר הרשמי 
+                        <a href="https://merkava.mrp.gov.il/giusp/index.html" target="_blank">מערכת גיוס ממשלתית</a>
+                    </p>
+                </div>
+
+                <div class="about-section">
+                    <h3>👨‍💻 מי בנה את האתר?</h3>
+                    <p>
+                        האתר נבנה על ידי <strong>יוסי רובינשטיין</strong> 
+                        <a href="https://www.linkedin.com/in/yossirubistein/" target="_blank" class="linkedin-link">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%230077B5' viewBox='0 0 24 24'%3E%3Cpath d='M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z'/%3E%3C/svg%3E" alt="LinkedIn" style="vertical-align: middle; margin: 0 5px;">
+                            לפרופיל LinkedIn
+                        </a>
+                    </p>
+                    <p>
+                        האתר נבנה במטרה לתרום לקהילה ולהקל על תהליך מציאת משרות בשירות הציבורי.
+                    </p>
+                </div>
+
+                <div class="about-section">
+                    <h3>💬 פידבקים והצעות לשיפור</h3>
+                    <p>
+                        נשמח לשמוע מכם! אם יש לכם הצעות לשיפור, רעיונות לפיצ'רים חדשים, או שמצאתם תקלה - 
+                        אתם מוזמנים ליצור קשר:
+                    </p>
+                    <p class="contact-info">
+                        📧 <a href="mailto:yosidisk02@gmail.com?subject=פידבק על אתר אל הדגל">yosidisk02@gmail.com</a>
+                    </p>
+                    <p>
+                        כל פידבק יתקבל בברכה ויעזור לנו לשפר את האתר!
+                    </p>
+                </div>
+
+                <div class="about-section">
+                    <h3>🔒 פרטיות ומידע</h3>
+                    <p>
+                        • כל הנתונים נשמרים מקומית בדפדפן שלך בלבד<br>
+                        • האתר לא שומר מידע אישי על משתמשים<br>
+                        • רשימת המשרות המועדפות נשמרת ב-localStorage של הדפדפן<br>
+                        • אין שימוש ב-cookies למעקב או לפרסום<br>
+                        • המידע מגיע מה-API הציבורי של מערכת גיוס ממשלתית
+                    </p>
+                </div>
+
+                <div class="about-section">
+                    <h3>🚀 פיצ'רים באתר</h3>
+                    <ul class="features-list">
+                        <li>✅ חיפוש חופשי בכל השדות</li>
+                        <li>✅ סינון לפי מיקום, משרד, אזור וסוג פרסום</li>
+                        <li>✅ מיון לפי תאריכים, שם משרה ועוד</li>
+                        <li>✅ שמירת משרות מועדפות</li>
+                        <li>✅ תצוגה מפורטת של כל משרה</li>
+                        <li>✅ מעבר ישיר להגשת מועמדות באתר הרשמי</li>
+                        <li>✅ התאמה למובייל וטאבלט</li>
+                        <li>✅ עיצוב נקי ונגיש</li>
+                    </ul>
+                </div>
+
+                <div class="about-footer">
+                    <p>
+                        <strong>גרסה:</strong> 1.0.0 | 
+                        <strong>עדכון אחרון:</strong> אוקטובר 2025
+                    </p>
+                    <p>
+                        🇮🇱 בהצלחה במציאת המשרה המושלמת בשירות הציבורי!
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAboutModal()">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>אל הדגל 🇮🇱 | אתר לא רשמי לחיפוש משרות בשירות הציבורי | עדכון אחרון: <span id="lastUpdate">-</span></p>
+            <p style="font-size: 0.9em; opacity: 0.8; margin-top: 5px;">
+                נבנה ע"י <a href="https://www.linkedin.com/in/yossirubistein/" target="_blank" style="color: var(--accent-color); text-decoration: none;">יוסי רובינשטיין</a> | 
+                <a href="mailto:yosidisk02@gmail.com" style="color: var(--accent-color); text-decoration: none;">צור קשר</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
