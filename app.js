@@ -3,6 +3,7 @@ let allJobs = [];
 let filteredJobs = [];
 let favorites = new Set();
 let showOnlyFavorites = false;
+let showExpiredJobs = false;
 
 // API Configuration
 const API_URL = 'https://merkava.mrp.gov.il/sap/opu/odata/ILG/GIUS_PUBLIC_AREA_SRV/SearchDataIdSet?$filter=isPublis+eq+true';
@@ -48,6 +49,10 @@ function setupEventListeners() {
     document.getElementById('publishTypeFilter').addEventListener('change', applyFilters);
     document.getElementById('sortBy').addEventListener('change', applyFilters);
     document.getElementById('sortOrder').addEventListener('change', applyFilters);
+    document.getElementById('showExpiredCheckbox').addEventListener('change', function() {
+    showExpiredJobs = this.checked;
+    applyFilters();
+});
     
     document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
     document.getElementById('showFavoritesBtn').addEventListener('click', toggleFavoritesView);
@@ -465,6 +470,12 @@ function applyFilters() {
         
         // Favorites filter
         if (showOnlyFavorites && !favorites.has(job.RequestId)) return false;
+
+            if (!showExpiredJobs) {
+        const lastDate = parseDateString(job.LastSubmittingDate);
+        const daysLeft = calculateDaysLeft(lastDate);
+        if (daysLeft < 0) return false;
+    }
         
         return true;
     });
@@ -957,6 +968,8 @@ function resetFilters() {
     btn.innerHTML = '<span class="icon">⭐</span> הצג מועדפים בלבד';
     btn.classList.remove('btn-warning');
     btn.classList.add('btn-secondary');
+        document.getElementById('showExpiredCheckbox').checked = false;
+    showExpiredJobs = false;
     
     applyFilters();
 }
